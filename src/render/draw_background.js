@@ -46,7 +46,7 @@ function drawBackground(painter: Painter, sourceCache: SourceCache, layer: Backg
         const configuration = ProgramConfiguration.forBackgroundPattern(opacity);
         program = painter.useProgram('fillPattern', configuration);
         configuration.setUniforms(context, program, properties, globals);
-        pattern.prepare(image, painter, program);
+        program.staticUniforms.set(program.uniforms, pattern.prepare(image, painter, program));
         painter.tileExtentPatternVAO.bind(context, program, painter.tileExtentBuffer, []);
     } else {
         const configuration = ProgramConfiguration.forBackgroundColor(color, opacity);
@@ -58,10 +58,13 @@ function drawBackground(painter: Painter, sourceCache: SourceCache, layer: Backg
     const tileIDs = transform.coveringTiles({tileSize});
 
     for (const tileID of tileIDs) {
+        program.staticUniforms.set(program.uniforms, {
+            u_matrix: painter.transform.calculatePosMatrix(tileID.toUnwrapped())
+        });
         if (image) {
-            pattern.setTile({tileID, tileSize}, painter, program);
+            program.staticUniforms.set(program.uniforms,
+                pattern.setTile({tileID, tileSize}, painter, program));
         }
-        gl.uniformMatrix4fv(program.uniforms.u_matrix, false, painter.transform.calculatePosMatrix(tileID.toUnwrapped()));
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, painter.tileExtentBuffer.length);
     }
 }
